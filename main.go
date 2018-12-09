@@ -46,21 +46,12 @@ func main() {
 				Name: "Chengdu",
 				URLs: []string{targetURL},
 			})
+
 			cIter, err := r.References()
-			//w, _ := r.Worktree()
 			err = cIter.ForEach(func(ref *plumbing.Reference) error {
-				if ref.Name() != "HEAD" {
+				if strings.HasPrefix(ref.Name().String(), "refs/remotes/origin/") {
 					branchName := strings.Replace(ref.Name().String(), "refs/remotes/origin/", "", 1)
-
-					//w.Checkout(&git.CheckoutOptions{
-					//	Force:  true,
-					//	Hash:   ref.Hash(),
-					//	Branch: plumbing.NewBranchReferenceName(branchName),
-					//})
-
 					head := plumbing.NewHashReference(plumbing.NewBranchReferenceName(branchName), ref.Hash())
-					//h:=plumbing.NewSymbolicReference(plumbing.HEAD,)
-
 					err = r.Storer.SetReference(head)
 
 					if err != nil {
@@ -69,11 +60,22 @@ func main() {
 				}
 				println(ref.Name())
 				err = r.Push(&git.PushOptions{
+					//RefSpecs:  []goconfig.RefSpec{goconfig.RefSpec("+refs/tags/*:refs/tags/*" )},
 					RemoteName: "Chengdu",
 					Auth:       &ssh2.PublicKeys{User: "git", Signer: singer},
 				})
 				return nil
 			})
+
+			err = r.Push(&git.PushOptions{
+				RefSpecs:   []goconfig.RefSpec{goconfig.RefSpec("+refs/tags/*:refs/tags/*")},
+				RemoteName: "Chengdu",
+				Auth:       &ssh2.PublicKeys{User: "git", Signer: singer},
+			})
+
+			if err != nil {
+				println(err)
+			}
 
 		}
 	}
