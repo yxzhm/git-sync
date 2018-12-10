@@ -1,0 +1,37 @@
+{
+  "sourceUrl": "git.labs.nuance.com",
+  "sourceKey": "./config/git_key",
+  "targetUrl": "10.71.20.245",
+  "targetKey": "./config/git_key",
+  "groups": [
+    {
+      "name": "mobility-deployment-environments",
+      "repos": [
+        "cddmz1-banma"
+      ]
+    },
+    {
+      "name": "mobility-deployment-products",
+      "repos": [
+        "core",
+        "dcs",
+        "ncs",
+        "dmc",
+        "ai",
+        "vm2t",
+        "tts",
+        "nlps",
+        "sample",
+        "nlg",
+        "carmanual",
+        "mpdss",
+        "pss",
+        "address_parser",
+        "tracs",
+        "gcs",
+        "vcs",
+        "mkb"
+      ]
+    }
+  ]
+}
