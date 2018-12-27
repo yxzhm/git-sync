@@ -93,27 +93,25 @@ func main() {
 	flag.StringVar(&configFile, "config", "/config.json", "config file")
 	flag.Parse()
 
-	for {
-		config := ReadConfigFile(configFile)
-		for i := 0; i < len(config.Groups); i++ {
-			group := &config.Groups[i]
-			for j := 0; j < len(group.Repos); j++ {
-				repo := group.Repos[j]
-				wg.Add(1)
+	config := ReadConfigFile(configFile)
+	for i := 0; i < len(config.Groups); i++ {
+		group := &config.Groups[i]
+		for j := 0; j < len(group.Repos); j++ {
+			repo := group.Repos[j]
+			wg.Add(1)
 
-				go func() {
-					defer wg.Done()
-					err := syncRepo(*config, group.Name, repo)
-					if err != nil {
-						Error.Println(err)
-					}
-				}()
+			go func() {
+				defer wg.Done()
+				err := syncRepo(*config, group.Name, repo)
+				if err != nil {
+					Error.Fatalln("Sync fail", err)
+				}
+			}()
 
-			}
 		}
-
-		wg.Wait()
-		Info.Println("Sync complete")
-
 	}
+
+	wg.Wait()
+	Info.Println("Sync complete")
+
 }
