@@ -16,12 +16,13 @@ var (
 	TargetRemoteName = "Chengdu"
 	GitUser          = "git"
 	wg               sync.WaitGroup
+	ch               chan int
 )
 
 func syncRepo(config Config, groupName string, repoName string) error {
 	Info.Printf("Handling the Group: %s , the Repo: %s", groupName, repoName)
 	sourceGit := "git@" + config.SourceURL + ":" + groupName + "/" + repoName
-	targetGit := "git@" + config.TargetURL + ":" + groupName + "/" + repoName
+	targetGit := "git@" + config.TargetURL + ":" + groupName + "/" + repoName + ".git"
 
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		Progress: os.Stdout,
@@ -65,6 +66,7 @@ func syncRepo(config Config, groupName string, repoName string) error {
 			if err != git.NoErrAlreadyUpToDate {
 				return err
 			}
+			Info.Printf("Pushed Group: %s , the Repo: %s, Branch: %s ", groupName, repoName, branchName)
 		}
 		return nil
 	})
@@ -94,18 +96,20 @@ func main() {
 	flag.Parse()
 
 	config := ReadConfigFile(configFile)
+	ch = make(chan int, config.Concurrence)
 	for i := 0; i < len(config.Groups); i++ {
 		group := &config.Groups[i]
 		for j := 0; j < len(group.Repos); j++ {
 			repo := group.Repos[j]
 			wg.Add(1)
-
+			ch <- 1
 			go func() {
 				defer wg.Done()
 				err := syncRepo(*config, group.Name, repo)
 				if err != nil {
 					Error.Fatalln("Sync fail", err)
 				}
+				<-ch
 			}()
 
 		}
