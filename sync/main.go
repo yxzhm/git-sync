@@ -7,7 +7,6 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	ssh2 "gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
-	"os"
 	"strings"
 	"sync"
 )
@@ -24,16 +23,15 @@ func syncRepo(config Config, groupName string, repoName string) error {
 	sourceGit := "git@" + config.SourceURL + ":" + groupName + "/" + repoName
 	targetGit := "git@" + config.TargetURL + ":" + groupName + "/" + repoName + ".git"
 
-	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
-		Progress: os.Stdout,
-		URL:      sourceGit,
-		Auth:     &ssh2.PublicKeys{User: GitUser, Signer: config.SourcePrivateKey},
+	//Clone Source
+	source, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+		URL:  sourceGit,
+		Auth: &ssh2.PublicKeys{User: GitUser, Signer: config.SourcePrivateKey},
 	})
 	if err != nil {
 		return err
 	}
-
-	_, err = r.CreateRemote(&goconfig.RemoteConfig{
+	_, err = source.CreateRemote(&goconfig.RemoteConfig{
 		Name: TargetRemoteName,
 		URLs: []string{targetGit},
 	})
@@ -41,7 +39,18 @@ func syncRepo(config Config, groupName string, repoName string) error {
 	if err != nil {
 		return err
 	}
-	cIter, err := r.References()
+
+	//Clone Target
+	target, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+		URL:  targetGit,
+		Auth: &ssh2.PublicKeys{User: GitUser, Signer: config.TargetPrivateKey},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	cIter, err := source.References()
 
 	if err != nil {
 		return err
@@ -53,19 +62,37 @@ func syncRepo(config Config, groupName string, repoName string) error {
 			branchName := strings.Replace(ref.Name().String(), "refs/remotes/origin/", "", 1)
 			Info.Printf("Handling the Group: %s , the Repo: %s, Branch: %s ", groupName, repoName, branchName)
 			head := plumbing.NewHashReference(plumbing.NewBranchReferenceName(branchName), ref.Hash())
-			err = r.Storer.SetReference(head)
+			err = source.Storer.SetReference(head)
 
 			if err != nil {
 				return err
 			}
-			err = r.Push(&git.PushOptions{
+			err = source.Push(&git.PushOptions{
 				RemoteName: TargetRemoteName,
 				Auth:       &ssh2.PublicKeys{User: GitUser, Signer: config.TargetPrivateKey},
 			})
 
+			if err.Error() == "non-fast-forward update: refs/heads/"+branchName && config.ForcePush {
+				Warning.Printf("Need to remove the Target branch " + branchName + " firstly.")
+				err = target.Push(&git.PushOptions{
+					RefSpecs: []goconfig.RefSpec{goconfig.RefSpec(":refs/heads/" + branchName)},
+					Auth:     &ssh2.PublicKeys{User: GitUser, Signer: config.TargetPrivateKey},
+				})
+
+				if err != nil {
+					return err
+				}
+				Warning.Printf("Removed " + branchName)
+				err = source.Push(&git.PushOptions{
+					RemoteName: TargetRemoteName,
+					Auth:       &ssh2.PublicKeys{User: GitUser, Signer: config.TargetPrivateKey},
+				})
+			}
+
 			if err != git.NoErrAlreadyUpToDate {
 				return err
 			}
+
 			Info.Printf("Pushed Group: %s , the Repo: %s, Branch: %s ", groupName, repoName, branchName)
 		}
 		return nil
@@ -76,7 +103,7 @@ func syncRepo(config Config, groupName string, repoName string) error {
 	}
 
 	//Handing tags
-	err = r.Push(&git.PushOptions{
+	err = source.Push(&git.PushOptions{
 		RefSpecs:   []goconfig.RefSpec{goconfig.RefSpec("+refs/tags/*:refs/tags/*")},
 		RemoteName: TargetRemoteName,
 		Auth:       &ssh2.PublicKeys{User: GitUser, Signer: config.TargetPrivateKey},
@@ -85,6 +112,7 @@ func syncRepo(config Config, groupName string, repoName string) error {
 	if err != git.NoErrAlreadyUpToDate {
 		return err
 	}
+	Info.Printf("Pushed Tags for Group: %s , the Repo: %s", groupName, repoName)
 	return nil
 
 }

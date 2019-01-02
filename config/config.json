@@ -1,5 +1,6 @@
 {
   "concurrence": 2,
+  "forcePush": true,
   "sourceUrl": "git.labs.nuance.com",
   "sourceKey": "./config/git_key",
   "targetUrl": "10.71.20.245",

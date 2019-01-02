@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	Concurrence      int    `json:"concurrence"`
+	ForcePush        bool   `json:"forcePush"`
 	SourceURL        string `json:"sourceUrl"`
 	SourceKey        string `json:"sourceKey"`
 	SourcePrivateKey ssh.Signer
