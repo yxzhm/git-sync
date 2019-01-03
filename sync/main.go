@@ -58,13 +58,14 @@ func syncRepo(config Config, groupName string, repoName string) error {
 
 	// Hading branches
 	err = cIter.ForEach(func(ref *plumbing.Reference) error {
-		if strings.HasPrefix(ref.Name().String(), "refs/remotes/origin/") {
+		if ref != nil && strings.HasPrefix(ref.Name().String(), "refs/remotes/origin/") {
 			branchName := strings.Replace(ref.Name().String(), "refs/remotes/origin/", "", 1)
 			Info.Printf("Handling the Group: %s , the Repo: %s, Branch: %s ", groupName, repoName, branchName)
 			head := plumbing.NewHashReference(plumbing.NewBranchReferenceName(branchName), ref.Hash())
 			err = source.Storer.SetReference(head)
 
 			if err != nil {
+				Warning.Printf("Set Reference fail.")
 				return err
 			}
 			err = source.Push(&git.PushOptions{
@@ -72,7 +73,7 @@ func syncRepo(config Config, groupName string, repoName string) error {
 				Auth:       &ssh2.PublicKeys{User: GitUser, Signer: config.TargetPrivateKey},
 			})
 
-			if err.Error() == "non-fast-forward update: refs/heads/"+branchName && config.ForcePush {
+			if err != nil && err.Error() == "non-fast-forward update: refs/heads/"+branchName && config.ForcePush {
 				Warning.Printf("Need to remove the Target branch " + branchName + " firstly.")
 				err = target.Push(&git.PushOptions{
 					RefSpecs: []goconfig.RefSpec{goconfig.RefSpec(":refs/heads/" + branchName)},
