@@ -19,7 +19,7 @@ var (
 )
 
 func syncRepo(config Config, groupName string, repoName string) error {
-	Info.Printf("Handling the Group: %s , the Repo: %s", groupName, repoName)
+	Info.Printf("Handling the Group: %s, the Repo: %s", groupName, repoName)
 	sourceGit := "git@" + config.SourceURL + ":" + groupName + "/" + repoName
 	targetGit := "git@" + config.TargetURL + ":" + groupName + "/" + repoName + ".git"
 
@@ -41,14 +41,14 @@ func syncRepo(config Config, groupName string, repoName string) error {
 	}
 
 	//Clone Target
-	target, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+	target, _ := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL:  targetGit,
 		Auth: &ssh2.PublicKeys{User: GitUser, Signer: config.TargetPrivateKey},
 	})
 
-	if err != nil {
-		return err
-	}
+	//if err != nil {
+	//	return err
+	//}
 
 	cIter, err := source.References()
 
@@ -60,7 +60,7 @@ func syncRepo(config Config, groupName string, repoName string) error {
 	err = cIter.ForEach(func(ref *plumbing.Reference) error {
 		if ref != nil && strings.HasPrefix(ref.Name().String(), "refs/remotes/origin/") {
 			branchName := strings.Replace(ref.Name().String(), "refs/remotes/origin/", "", 1)
-			Info.Printf("Handling the Group: %s , the Repo: %s, Branch: %s ", groupName, repoName, branchName)
+			Info.Printf("Handling the Group: %s, the Repo: %s, Branch: %s", groupName, repoName, branchName)
 			head := plumbing.NewHashReference(plumbing.NewBranchReferenceName(branchName), ref.Hash())
 			err = source.Storer.SetReference(head)
 
@@ -72,8 +72,8 @@ func syncRepo(config Config, groupName string, repoName string) error {
 				RemoteName: TargetRemoteName,
 				Auth:       &ssh2.PublicKeys{User: GitUser, Signer: config.TargetPrivateKey},
 			})
-
-			if err != nil && err.Error() == "non-fast-forward update: refs/heads/"+branchName && config.ForcePush {
+			//err.Error() == "non-fast-forward update: refs/heads/"+branchName
+			if err != nil && strings.HasPrefix(err.Error(), "non-fast-forward update") && config.ForcePush {
 				Warning.Printf("Need to remove the Target branch " + branchName + " firstly.")
 				err = target.Push(&git.PushOptions{
 					RefSpecs: []goconfig.RefSpec{goconfig.RefSpec(":refs/heads/" + branchName)},
@@ -94,7 +94,7 @@ func syncRepo(config Config, groupName string, repoName string) error {
 				return err
 			}
 
-			Info.Printf("Pushed Group: %s , the Repo: %s, Branch: %s ", groupName, repoName, branchName)
+			Info.Printf("Pushed Group: %s, the Repo: %s, Branch: %s", groupName, repoName, branchName)
 		}
 		return nil
 	})
@@ -113,7 +113,7 @@ func syncRepo(config Config, groupName string, repoName string) error {
 	if err != git.NoErrAlreadyUpToDate {
 		return err
 	}
-	Info.Printf("Pushed Tags for Group: %s , the Repo: %s", groupName, repoName)
+	Info.Printf("Pushed Tags for Group: %s, the Repo: %s", groupName, repoName)
 	return nil
 
 }
