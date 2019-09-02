@@ -20,8 +20,9 @@ type Config struct {
 }
 
 type Group struct {
-	Name  string   `json:"name"`
-	Repos []string `json:"repos"`
+	Name       string   `json:"name"`
+	TargetName string   `json:"targetName"`
+	Repos      []string `json:"repos"`
 }
 
 func ReadConfigFile(configFile string) *Config {

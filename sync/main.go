@@ -18,10 +18,13 @@ var (
 	ch               chan int
 )
 
-func syncRepo(config Config, groupName string, repoName string) error {
+func syncRepo(config Config, groupName string, targetRroupName string, repoName string) error {
 	Info.Printf("Handling the Group: %s, the Repo: %s", groupName, repoName)
 	sourceGit := "git@" + config.SourceURL + ":" + groupName + "/" + repoName
 	targetGit := "git@" + config.TargetURL + ":" + groupName + "/" + repoName + ".git"
+	if targetRroupName != "" {
+		targetGit = "git@" + config.TargetURL + ":" + targetRroupName + "/" + repoName + ".git"
+	}
 
 	//Clone Source
 	source, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
@@ -134,7 +137,7 @@ func main() {
 			ch <- 1
 			go func() {
 				defer wg.Done()
-				err := syncRepo(*config, group.Name, repo)
+				err := syncRepo(*config, group.Name, group.TargetName, repo)
 				if err != nil {
 					Error.Fatalln("Sync fail", err)
 				}
