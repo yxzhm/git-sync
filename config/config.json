@@ -1,21 +1,17 @@
 {
   "concurrence": 2,
   "forcePush": true,
-  "sourceUrl": "git.labs.nuance.com",
-  "sourceKey": "./config/git_key",
-  "targetUrl": "10.71.20.245",
-  "targetKey": "./config/git_key",
+  "sourceUrl": "gitlab.prodci.mobcc.nuance.com",
+  "sourceKey": "D:/Dev-NuanceTrusted-2018/go/workspace/src/github.com/yxzhm/git-sync/config/id_rsa",
+  "targetUrl": "gitlab.prodci.use2.hosting.nuautoco.com",
+  "targetKey": "D:/Dev-NuanceTrusted-2018/go/workspace/src/github.com/yxzhm/git-sync/config/id_rsa",
   "groups": [
     {
-      "name": "mobility-deployment-environments",
+      "name": "tts/deploy-tts",
+      "targetName": "ncs/tts/deploy-tts-production/deploy-tts",
       "repos": [
-        "cddmz1-banma"
-      ]
-    },
-    {
-      "name": "mobility-deployment-products",
-      "repos": [
-        "nlps"
+        "azure",
+        "tts-ct-test"
       ]
     }
   ]
